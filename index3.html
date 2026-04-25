@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="復習TODO">
+<title>復習やることリスト</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Bebas+Neue&display=swap');
+:root{--bg:#faf8f5;--sur:#fff;--bdr:#e0dbd3;--txt:#1a1814;--mut:#9a9488;--acc:#c8401a;--r3bg:#fce4ec;--r3c:#c62828;--r4bg:#e3f2fd;--r4c:#1565c0;--done:#e8f5e9;--donec:#2e7d32;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);font-family:'Noto Sans JP',sans-serif;color:var(--txt);min-height:100vh;padding:14px 10px;}
+.app{max-width:600px;margin:0 auto;}
+h1{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:2px;line-height:1;margin-bottom:2px;}
+h1 span{color:var(--acc);}
+.sub{font-size:10px;color:var(--mut);margin-bottom:12px;}
+.week-nav{display:flex;align-items:center;gap:6px;margin-bottom:14px;background:var(--sur);border:1px solid var(--bdr);border-radius:8px;padding:8px 12px;}
+.wn-btns{display:flex;gap:4px;}
+.wn-btns button{background:var(--bg);border:1px solid var(--bdr);border-radius:5px;padding:4px 10px;font-size:12px;cursor:pointer;font-family:'Noto Sans JP',sans-serif;}
+.wn-btns button:hover{background:#eee;}
+.btn-now{background:var(--acc)!important;color:white!important;border-color:var(--acc)!important;}
+#weekLabel{font-size:12px;font-weight:700;flex:1;text-align:center;}
+#saveStatus{font-size:11px;padding:3px 10px;border-radius:10px;font-weight:700;}
+#saveStatus.saved{background:var(--done);color:var(--donec);}
+#saveStatus.saving{background:#fff3e0;color:#e8961a;}
+.section{margin-bottom:12px;background:var(--sur);border:1px solid var(--bdr);border-radius:10px;overflow:hidden;}
+.section-header{padding:8px 14px;font-size:11px;font-weight:700;letter-spacing:.06em;display:flex;align-items:center;gap:8px;}
+.section-header.r3{background:var(--r3bg);color:var(--r3c);border-bottom:2px solid var(--r3c);}
+.section-header.r4{background:var(--r4bg);color:var(--r4c);border-bottom:2px solid var(--r4c);}
+.section-header .count{margin-left:auto;font-size:10px;background:rgba(255,255,255,.7);padding:1px 7px;border-radius:8px;}
+.todo-item{display:flex;align-items:flex-start;gap:10px;padding:10px 14px;border-bottom:1px solid #f0ece8;transition:background .2s;}
+.todo-item:last-child{border-bottom:none;}
+.todo-item.done{background:#f7fdf7;}
+.todo-item.overdue{background:#fff5f5;border-left:3px solid var(--r3c);}
+.todo-item.future{opacity:.45;}
+.check-wrap{padding-top:1px;flex-shrink:0;}
+.check-wrap input[type=checkbox]{width:20px;height:20px;cursor:pointer;accent-color:var(--acc);}
+.item-body{flex:1;}
+.item-title{font-size:12px;font-weight:700;margin-bottom:2px;display:flex;align-items:center;gap:5px;flex-wrap:wrap;}
+.item-title.done-txt{text-decoration:line-through;color:var(--mut);}
+.item-when{font-size:10px;color:var(--mut);margin-top:2px;}
+.badge{font-size:9px;padding:1px 6px;border-radius:4px;font-weight:700;white-space:nowrap;}
+.badge.done{background:var(--done);color:var(--donec);}
+.badge.overdue{background:var(--r3bg);color:var(--r3c);}
+.badge.future{background:#f0f0f0;color:#888;}
+.badge.today{background:#fff3e0;color:#e8961a;}
+.tag{font-size:9px;padding:1px 5px;border-radius:3px;font-weight:700;}
+.tag.math{background:#e8eef9;color:#1a3a6e;}
+.tag.all{background:#f0f0f0;color:#555;}
+.progress-wrap{padding:8px 14px 10px;background:#fafaf8;border-top:1px solid var(--bdr);}
+.progress-label{font-size:10px;color:var(--mut);margin-bottom:4px;}
+.progress-bar{height:6px;background:#f0ece8;border-radius:3px;overflow:hidden;}
+.progress-fill{height:100%;border-radius:3px;transition:width .4s ease;}
+.progress-fill.r3{background:var(--r3c);}
+.progress-fill.r4{background:var(--r4c);}
+</style>
+</head>
+<body>
+<div class="app">
+  <h1>REVIEW <span>TODO</span></h1>
+  <div class="sub">復習③④ やることリスト ― チェックはlocalStorageに即時保存</div>
+  <div class="week-nav">
+    <div class="wn-btns">
+      <button onclick="shiftWeek(-1)">◀</button>
+      <button class="btn-now" onclick="goThisWeek()">今週</button>
+      <button onclick="shiftWeek(1)">▶</button>
+    </div>
+    <div id="weekLabel">...</div>
+    <div id="saveStatus" class="saved">✓ 保存済</div>
+  </div>
+  <div class="section">
+    <div class="section-header r3">🔴 復習③ ― ×△を解き直す（60〜120分）<span class="count" id="r3count">0/5</span></div>
+    <div id="r3list"></div>
+    <div class="progress-wrap">
+      <div class="progress-label" id="r3lbl">0 / 5 完了</div>
+      <div class="progress-bar"><div class="progress-fill r3" id="r3bar" style="width:0%"></div></div>
+    </div>
+  </div>
+  <div class="section">
+    <div class="section-header r4">🔵 復習④ ― ◎以外を解き直す（60〜90分）<span class="count" id="r4count">0/2</span></div>
+    <div id="r4list"></div>
+    <div class="progress-wrap">
+      <div class="progress-label" id="r4lbl">0 / 2 完了</div>
+      <div class="progress-bar"><div class="progress-fill r4" id="r4bar" style="width:0%"></div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== STORAGE: localStorageを直接使用 =====
+const STORAGE_KEY = 'review_todos_v3';
+
+function loadAll() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch(e) {
+    return {};
+  }
+}
+
+function saveAll(data) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    setStatus('saved', '✓ 保存済');
+  } catch(e) {
+    setStatus('saving', '保存失敗');
+  }
+}
+
+function setStatus(cls, msg) {
+  const el = document.getElementById('saveStatus');
+  el.className = cls;
+  el.textContent = msg;
+}
+
+// ===== 日付ユーティリティ =====
+function getThisMonday() {
+  const d = new Date(), day = d.getDay();
+  d.setDate(d.getDate() + (day === 0 ? -6 : 1 - day));
+  d.setHours(0,0,0,0);
+  return d;
+}
+function toKey(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function fmtS(d) { return `${d.getMonth()+1}/${d.getDate()}`; }
+function addDays(d, n) { const r = new Date(d); r.setDate(r.getDate()+n); return r; }
+
+// ===== 状態 =====
+let monday = getThisMonday();
+
+function getWeekState(key) {
+  const all = loadAll();
+  if (!all[key]) all[key] = { r3: [false,false,false,false,false], r4: [false,false] };
+  const ws = all[key];
+  while(ws.r3.length < 5) ws.r3.push(false);
+  while(ws.r4.length < 2) ws.r4.push(false);
+  return ws;
+}
+
+function setCheck(mondayKey, type, i, val) {
+  const all = loadAll();
+  if (!all[mondayKey]) all[mondayKey] = { r3:[false,false,false,false,false], r4:[false,false] };
+  all[mondayKey][type][i] = val;
+  saveAll(all);
+}
+
+// ===== アイテム定義 =====
+function getItems() {
+  const today = toKey(new Date());
+  const nowMin = new Date().getHours()*60 + new Date().getMinutes();
+  const enrich = items => items.map(it => {
+    const doDate = addDays(monday, it.tDay);
+    const doStr = toKey(doDate);
+    const refDate = addDays(monday, it.tDay + it.off);
+    const isPast = doStr < today;
+    const isToday = doStr === today;
+    const isFuture = doStr > today;
+    const isOverdue = !isFuture && (isPast || (isToday && nowMin >= it.dead));
+    return { ...it, doDate, doStr, refDate, isPast, isToday, isFuture, isOverdue };
+  });
+  return {
+    r3: enrich([
+      {tDay:0,off:-3,dead:21*60,label:'月曜夜 21:00〜',tag:'all'},
+      {tDay:1,off:-3,dead:21*60,label:'火曜夜 21:00〜',tag:'all'},
+      {tDay:2,off:-3,dead:21*60,label:'水曜夜 21:00〜',tag:'all'},
+      {tDay:3,off:-3,dead:15*60+10,label:'木曜午後 15:10〜',tag:'math'},
+      {tDay:4,off:-3,dead:21*60,label:'金曜夜 21:00〜',tag:'all'},
+    ]),
+    r4: enrich([
+      {tDay:0,off:-7,dead:16*60+50,label:'月曜夕方 16:50〜',tag:'math'},
+      {tDay:1,off:-7,dead:9*60+30, label:'火曜午前 9:30〜', tag:'math'},
+    ])
+  };
+}
+
+// ===== 描画 =====
+function render() {
+  const mKey = toKey(monday);
+  const fri = addDays(monday, 4);
+  document.getElementById('weekLabel').textContent =
+    `${fmtS(monday)}（月）〜 ${fmtS(fri)}（金）`;
+
+  const ws = getWeekState(mKey);
+  const { r3, r4 } = getItems();
+
+  renderList('r3list', r3, ws.r3, 'r3', mKey);
+  renderList('r4list', r4, ws.r4, 'r4', mKey);
+
+  const r3done = ws.r3.filter(Boolean).length;
+  const r4done = ws.r4.filter(Boolean).length;
+  document.getElementById('r3lbl').textContent = `${r3done} / 5 完了`;
+  document.getElementById('r4lbl').textContent = `${r4done} / 2 完了`;
+  document.getElementById('r3bar').style.width = `${r3done/5*100}%`;
+  document.getElementById('r4bar').style.width = `${r4done/2*100}%`;
+  document.getElementById('r3count').textContent = `${r3done}/5`;
+  document.getElementById('r4count').textContent = `${r4done}/2`;
+}
+
+function renderList(cId, items, checked, type, mKey) {
+  const el = document.getElementById(cId);
+  el.innerHTML = '';
+  items.forEach((it, i) => {
+    const isDone = !!checked[i];
+    let cls = 'todo-item';
+    if (isDone) cls += ' done';
+    else if (it.isOverdue) cls += ' overdue';
+    else if (it.isFuture) cls += ' future';
+
+    let badge = '';
+    if (isDone) badge = '<span class="badge done">✓ 完了</span>';
+    else if (it.isFuture) badge = `<span class="badge future">${it.doStr}</span>`;
+    else if (it.isOverdue) badge = '<span class="badge overdue">⚠ 未了</span>';
+    else if (it.isToday) badge = '<span class="badge today">今日</span>';
+
+    const tagHtml = it.tag === 'math'
+      ? '<span class="tag math">数学重点</span>'
+      : '<span class="tag all">全科目</span>';
+
+    const div = document.createElement('div');
+    div.className = cls;
+    div.innerHTML = `
+      <div class="check-wrap"><input type="checkbox" ${isDone?'checked':''}></div>
+      <div class="item-body">
+        <div class="item-title ${isDone?'done-txt':''}">${tagHtml} ${fmtS(it.refDate)} の ×△ を解き直す ${badge}</div>
+        <div class="item-when">📅 ${it.label}</div>
+      </div>`;
+
+    div.querySelector('input').addEventListener('change', e => {
+      // 即時保存
+      setCheck(mKey, type, i, e.target.checked);
+      render();
+    });
+    el.appendChild(div);
+  });
+}
+
+// ===== ナビ =====
+function shiftWeek(n) { monday = addDays(monday, n*7); render(); }
+function goThisWeek() { monday = getThisMonday(); render(); }
+
+// ===== 起動 =====
+window.addEventListener('DOMContentLoaded', render);
+</script>
+</body>
+</html>
