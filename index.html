@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<link rel="manifest" href="manifest.json">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>週間時間割</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Bebas+Neue&display=swap');
+:root{--bg:#faf8f5;--sur:#fff;--bdr:#e0dbd3;--txt:#1a1814;--mut:#9a9488;--acc:#c8401a;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);font-family:'Noto Sans JP',sans-serif;color:var(--txt);padding:12px 8px;}
+.app{max-width:980px;margin:0 auto;}
+
+/* header */
+.hdr{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:10px;padding-bottom:8px;border-bottom:3px solid var(--txt);}
+.htitle{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;line-height:1;}
+.htitle span{color:var(--acc);}
+.hsub{font-size:9px;color:var(--mut);margin-top:2px;}
+
+/* controls */
+.ctrl{background:var(--sur);border:1px solid var(--bdr);border-radius:8px;padding:7px 12px;margin-bottom:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.cg{display:flex;align-items:center;gap:5px;}
+.cg label{font-size:11px;color:var(--mut);white-space:nowrap;}
+.cg input[type=date]{font-family:'Noto Sans JP',sans-serif;font-size:11px;padding:4px 7px;border:1px solid var(--bdr);border-radius:5px;background:var(--bg);}
+.wn{display:flex;gap:3px;}
+.wn button{background:var(--bg);border:1px solid var(--bdr);border-radius:5px;padding:4px 9px;font-size:11px;cursor:pointer;font-family:'Noto Sans JP',sans-serif;}
+.wn button:hover{background:#eee;}
+.btn-now{background:var(--acc)!important;color:white!important;border-color:var(--acc)!important;}
+.tgg{display:flex;align-items:center;gap:5px;}
+.tl{font-size:11px;color:var(--mut);}
+.tog{position:relative;width:36px;height:19px;}
+.tog input{opacity:0;width:0;height:0;}
+.tsl{position:absolute;inset:0;background:var(--bdr);border-radius:20px;cursor:pointer;transition:.2s;}
+.tsl:before{content:'';position:absolute;width:13px;height:13px;left:3px;top:3px;background:white;border-radius:50%;transition:.2s;}
+.tog input:checked+.tsl{background:var(--acc);}
+.tog input:checked+.tsl:before{transform:translateX(17px);}
+.btn-pr{margin-left:auto;background:var(--acc);color:white;border:none;padding:5px 12px;border-radius:5px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Noto Sans JP',sans-serif;}
+
+/* table wrap */
+.twrap{background:var(--sur);border:1px solid var(--bdr);border-radius:8px;overflow:hidden;}
+.thd{padding:8px 12px;border-bottom:2px solid var(--txt);display:flex;align-items:baseline;gap:10px;}
+.wt{font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:1px;}
+.wr{font-size:10px;color:var(--mut);}
+.thu-badge{margin-left:auto;font-size:9px;padding:2px 8px;border-radius:20px;font-weight:700;}
+.thu-odd{background:#fce4ec;color:#c62828;}
+.thu-even{background:#e8f5e9;color:#2e7d32;}
+
+/* time line */
+#tbox{position:relative;overflow-x:auto;}
+#tline{position:absolute;left:0;right:0;height:2px;background:var(--acc);pointer-events:none;z-index:20;display:none;}
+#tline::after{content:'';position:absolute;left:44px;top:-4px;width:9px;height:9px;border-radius:50%;background:var(--acc);}
+
+/* table */
+table{width:100%;border-collapse:collapse;font-size:9.5px;}
+th{color:white;padding:5px 2px;text-align:center;font-size:10px;font-weight:700;}
+th.tc{width:44px;background:#2a2a2a;}
+th.c0{background:#1a3a6e;}th.c1{background:#1a5c3a;}th.c2{background:#5c3a1a;}th.c3{background:#5c1a1a;}th.c4{background:#1a4a5c;}
+th.today-th{outline:3px solid var(--acc);outline-offset:-2px;filter:brightness(1.4);}
+td{border:1px solid var(--bdr);padding:0;vertical-align:top;}
+td.tmc{text-align:right;padding:1px 4px 1px 1px;font-size:8.5px;color:var(--mut);background:#fafaf8;white-space:nowrap;vertical-align:middle;border-right:2px solid var(--bdr);}
+td.tmc.hm{font-weight:700;color:var(--txt);border-top:2px solid #ccc;}
+td.today-col:not(.tmc){box-shadow:inset 2px 0 0 rgba(200,64,26,.18),inset -2px 0 0 rgba(200,64,26,.18);}
+.slot{min-height:18px;padding:2px 3px;font-size:8.5px;line-height:1.35;display:flex;align-items:center;justify-content:center;text-align:center;height:100%;white-space:pre-line;}
+
+/* slot colors */
+.class-math{background:#1a3a6e;color:white;font-weight:700;}
+.class-eng{background:#1a5c3a;color:white;font-weight:700;}
+.class-sci{background:#5c1a6e;color:white;font-weight:700;}
+.class-jpn{background:#7a4a1a;color:white;font-weight:700;}
+.class-geo{background:#1a5a5c;color:white;font-weight:700;}
+.class-info{background:#3a3a6e;color:white;font-weight:700;}
+.class-listen{background:#4a4a1a;color:white;font-weight:700;}
+.class-chigaku{background:#2d5a27;color:white;font-weight:700;}
+.review1{background:#fff3e0;color:#7a5a00;border-left:3px solid #e8961a;}
+.review2{background:#e8f5e9;color:#1a4a1a;border-left:3px solid #2e7d32;}
+.review3{background:#fce4ec;color:#7a1a1a;border-left:3px solid #c62828;}
+.review4{background:#e3f2fd;color:#1a3a6e;border-left:3px solid #1565c0;}
+.prep{background:#f0f4ff;color:#1a2a7a;border-left:3px solid #3949ab;}
+.problem{background:#fff8e1;color:#5a4000;border-left:3px solid #f9a825;}
+.meal{background:#f5f5f5;color:#5a5a5a;}
+.commute{background:#e8eaf6;color:#1a2a7a;}
+.sleep{background:#eceff1;color:#5a6a7a;}
+.brk{background:#fafafa;color:#ccc;}
+
+/* legend */
+.legend{display:flex;flex-wrap:wrap;gap:4px;padding:7px 12px;border-top:1px solid var(--bdr);background:#fafaf8;}
+.li{display:flex;align-items:center;gap:3px;font-size:8.5px;color:var(--mut);}
+.ld{width:9px;height:9px;border-radius:2px;flex-shrink:0;}
+
+@media print{
+  body{background:white;padding:0;}
+  .ctrl,.hdr .hsub{display:none!important;}
+  .hdr{margin-bottom:5px;padding-bottom:5px;}
+  .htitle{font-size:20px;}
+  .twrap{border-radius:0;border:none;}
+  table{font-size:7.5px;}
+  th{padding:3px 2px;font-size:8px;}
+  .slot{min-height:12px;padding:1px 2px;font-size:7.5px;}
+  #tline{display:none!important;}
+  @page{margin:5mm;size:A4 landscape;}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="hdr">
+    <div>
+      <div class="htitle">WEEKLY <span>SCHEDULE</span></div>
+      <div class="hsub">河合塾 金沢駅西 ／ 理系（地学選択）</div>
+    </div>
+  </div>
+
+  <div class="ctrl">
+    <div class="cg">
+      <label>週の月曜日</label>
+      <input type="date" id="wStart">
+    </div>
+    <div class="wn">
+      <button onclick="shift(-1)">◀ 前週</button>
+      <button class="btn-now" onclick="goNow()">今週</button>
+      <button onclick="shift(1)">次週 ▶</button>
+    </div>
+    <div class="tgg">
+      <span class="tl">木曜1限：</span>
+      <label class="tog"><input type="checkbox" id="thuTog"><span class="tsl"></span></label>
+      <span id="thuLbl" class="tl" style="font-weight:700;color:var(--acc)">奇数週</span>
+    </div>
+    <button class="btn-pr" onclick="window.print()">🖨 印刷</button>
+  </div>
+
+  <div class="twrap">
+    <div class="thd">
+      <div class="wt">週間時間割</div>
+      <div class="wr" id="wRange"></div>
+      <div class="thu-badge" id="thuBadge">奇数週</div>
+    </div>
+    <div id="tbox">
+      <div id="tline"></div>
+      <table>
+        <thead><tr>
+          <th class="tc">時刻</th>
+          <th class="c0" id="th0">月</th>
+          <th class="c1" id="th1">火</th>
+          <th class="c2" id="th2">水</th>
+          <th class="c3" id="th3">木</th>
+          <th class="c4" id="th4">金</th>
+        </tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <div class="legend">
+      <div class="li"><div class="ld" style="background:#1a3a6e"></div>数学</div>
+      <div class="li"><div class="ld" style="background:#1a5c3a"></div>英語</div>
+      <div class="li"><div class="ld" style="background:#5c1a6e"></div>理科</div>
+      <div class="li"><div class="ld" style="background:#7a4a1a"></div>国語</div>
+      <div class="li"><div class="ld" style="background:#1a5a5c"></div>地理</div>
+      <div class="li"><div class="ld" style="background:#2d5a27"></div>地学</div>
+      <div class="li"><div class="ld" style="background:#fff3e0;border:1px solid #e8961a"></div>復習①当日</div>
+      <div class="li"><div class="ld" style="background:#e8f5e9;border:1px solid #2e7d32"></div>復習②翌朝</div>
+      <div class="li"><div class="ld" style="background:#fce4ec;border:1px solid #c62828"></div>復習③+3日</div>
+      <div class="li"><div class="ld" style="background:#e3f2fd;border:1px solid #1565c0"></div>復習④+7日</div>
+      <div class="li"><div class="ld" style="background:#f0f4ff;border:1px solid #3949ab"></div>予習</div>
+      <div class="li"><div class="ld" style="background:#fff8e1;border:1px solid #f9a825"></div>問題集</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== スロット生成 6:00〜22:45 =====
+const SLOTS = [];
+for(let h=6;h<=22;h++) for(let m=0;m<60;m+=15) SLOTS.push({lbl:`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`,min:h*60+m});
+
+const tm = s => { const [h,m]=s.split(':').map(Number); return h*60+m; };
+const toDV = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+const fS = d => `${d.getMonth()+1}/${d.getDate()}`;
+const addD = (d,n) => { const r=new Date(d); r.setDate(r.getDate()+n); return r; };
+
+let monDate = null;
+
+// ===== スケジュール定義 =====
+function buildSch(thuOdd) {
+  const S = [];
+  const a = (s,e,l,t,d,off) => {
+    const entry = {s,e,l,t,d};
+    if(off != null) entry.off = off;
+    S.push(entry);
+  };
+
+  // 起床・朝
+  a('06:00','06:15','🌅 起床','sleep',[0,1,2,3,4]);
+  a('06:15','06:45', d=>`復習②\n${fS(d)}前日\n×△脳内再現`,'review2',[0,1,2,3,4],-1);
+  [[0,'英語②'],[1,'数学②T1'],[2,'数学①T1'],[3,'英文法'],[4,'数学③T1']]
+    .forEach(([day,n])=>a('06:45','07:30',`予習\n${n}`,'prep',[day]));
+  a('07:30','08:15','朝食・準備','meal',[0,1,2,3,4]);
+  a('08:15','09:20','🚃 通学\n英単語\n要注意カード','commute',[0,1,2,3,4]);
+
+  // ===月===
+  a('09:30','11:00','📖 国語\nトップ現代文','class-jpn',[0]);
+  a('11:00','11:10','休憩','brk',[0]);
+  a('11:10','12:40','📖 英語\n英語②T(表現)','class-eng',[0]);
+  a('12:40','13:00','昼食','meal',[0]);
+  a('13:00','13:30','昼休み','brk',[0]);
+  a('13:30','15:00','🌍 地学\n自習①','class-chigaku',[0]);
+  a('15:00','15:10','休憩','brk',[0]);
+  a('15:10','16:40','📖 数学\n理系数学演習','class-math',[0]);
+  a('16:40','16:50','休憩','brk',[0]);
+  a('16:50','18:20', d=>`復習④\n${fS(d)}月分\n◎以外解き直し`,'review4',[0],-7);
+
+  // ===火===
+  a('09:30','11:00', d=>`復習④\n${fS(d)}火分\n◎以外解き直し`,'review4',[1],-7);
+  a('11:00','11:10','休憩','brk',[1]);
+  a('11:10','12:40','📖 数学\n数学②理系T1','class-math',[1]);
+  a('12:40','13:00','昼食','meal',[1]);
+  a('13:00','13:30','昼休み','brk',[1]);
+  a('13:30','15:00','🌍 地学\n自習②','class-chigaku',[1]);
+  a('15:00','15:10','休憩','brk',[1]);
+  a('15:10','16:40','📖 理科\n化学T1','class-sci',[1]);
+  a('16:40','16:50','休憩','brk',[1]);
+  a('16:50','18:20','📖 情報\n情報I','class-info',[1]);
+
+  // ===水===
+  a('09:30','11:00','📖 数学\n数学①理系T1','class-math',[2]);
+  a('11:00','11:10','休憩','brk',[2]);
+  a('11:10','12:40','📖 国語\nトップ漢文','class-jpn',[2]);
+  a('12:40','13:00','昼食','meal',[2]);
+  a('13:00','13:30','昼休み','brk',[2]);
+  a('13:30','15:00','📖 英語\n英語①T(解釈)','class-eng',[2]);
+  a('15:00','15:10','休憩','brk',[2]);
+  a('15:10','16:40','問題集\n数学苦手強化','problem',[2]);
+  a('16:40','16:50','休憩','brk',[2]);
+  a('16:50','18:20','📖 英語\nListening','class-listen',[2]);
+
+  // ===木===
+  if(thuOdd)
+    a('09:30','11:00','📖 理科\n科学習得（奇）','class-sci',[3]);
+  else
+    a('09:30','11:00','問題集\n数学・地学','problem',[3]);
+  a('11:00','11:10','休憩','brk',[3]);
+  a('11:10','12:40','📖 英語\n英文法・語法','class-eng',[3]);
+  a('12:40','13:00','昼食','meal',[3]);
+  a('13:00','13:30','昼休み','brk',[3]);
+  a('13:30','15:00','📖 地理\n地理総合','class-geo',[3]);
+  a('15:00','15:10','休憩','brk',[3]);
+  a('15:10','16:40', d=>`復習③\n${fS(d)}月分\n×△解き直し`,'review3',[3],-3);
+  a('16:40','16:50','休憩','brk',[3]);
+  a('16:50','18:20','予習\n翌日(金)分','prep',[3]);
+
+  // ===金===
+  a('09:30','11:00','📖 英語\n英語③長文T','class-eng',[4]);
+  a('11:00','11:10','休憩','brk',[4]);
+  a('11:10','12:40','📖 数学\n数学③理系T1','class-math',[4]);
+  a('12:40','13:00','昼食','meal',[4]);
+  a('13:00','13:30','昼休み','brk',[4]);
+  a('13:30','15:00','📖 国語\nトップ古文','class-jpn',[4]);
+  a('15:00','15:10','休憩','brk',[4]);
+  a('15:10','16:40','📖 理科\n化学T②','class-sci',[4]);
+  a('16:40','16:50','休憩','brk',[4]);
+  a('16:50','18:20','📖 数学\n習得タイム','class-math',[4]);
+
+  // ===帰宅・夜===
+  a('18:20','19:45','🚃 帰宅\n英単語\n要注意カード','commute',[0,1,2,3,4]);
+  a('19:45','20:30','夕食・入浴','meal',[0,1,2,3,4]);
+  a('20:30','21:00', d=>`復習①\n${fS(d)}今日の×\n20〜30分`,'review1',[0,1,2,3,4],0);
+  a('21:00','22:30', d=>`復習③\n${fS(d)}金分\n×△解き直し`,'review3',[0],-3);
+  a('21:00','22:30', d=>`復習③\n${fS(d)}土分\n×△解き直し`,'review3',[1],-3);
+  a('21:00','22:30', d=>`復習③\n${fS(d)}日分\n×△解き直し`,'review3',[2],-3);
+  a('21:00','22:30','問題集\n数学・地学','problem',[3]);
+  a('21:00','22:30', d=>`復習③\n${fS(d)}火分\n×△解き直し`,'review3',[4],-3);
+  a('22:30','22:45','就寝準備','sleep',[0,1,2,3,4]);
+
+  return S;
+}
+
+// ===== 今日ハイライト =====
+function highlightToday() {
+  document.querySelectorAll('.today-th,.today-col').forEach(e=>{
+    e.classList.remove('today-th','today-col');
+  });
+  if(!monDate) return;
+  const tod = new Date(); tod.setHours(0,0,0,0);
+  const mon = new Date(monDate); mon.setHours(0,0,0,0);
+  const diff = Math.round((tod-mon)/86400000);
+  if(diff<0||diff>=5) return;
+  document.getElementById(`th${diff}`)?.classList.add('today-th');
+  document.querySelectorAll(`#tbody td[data-day="${diff}"]`).forEach(td=>td.classList.add('today-col'));
+}
+
+// ===== 現在時刻ライン =====
+function updateTimeLine() {
+  const line = document.getElementById('tline');
+  if(!monDate){line.style.display='none';return;}
+  const tod = new Date(); tod.setHours(0,0,0,0);
+  const mon = new Date(monDate); mon.setHours(0,0,0,0);
+  const diff = Math.round((tod-mon)/86400000);
+  if(diff<0||diff>=5){line.style.display='none';return;}
+  const now = new Date();
+  const cur = now.getHours()*60+now.getMinutes();
+  if(cur<360||cur>22*60+45){line.style.display='none';return;}
+  let si = SLOTS.length-1;
+  for(let i=0;i<SLOTS.length-1;i++){
+    if(cur>=SLOTS[i].min&&cur<SLOTS[i+1].min){si=i;break;}
+  }
+  const row = document.getElementById('tbody').rows[si];
+  if(!row){line.style.display='none';return;}
+  const frac = (cur-SLOTS[si].min)/15;
+  const box = document.getElementById('tbox');
+  const br = box.getBoundingClientRect(), rr = row.getBoundingClientRect();
+  line.style.top = Math.round(rr.top-br.top+frac*rr.height)+'px';
+  line.style.display = 'block';
+}
+
+// ===== レンダリング =====
+function render() {
+  const thuOdd = document.getElementById('thuTog').checked;
+  const sch = buildSch(thuOdd);
+  const val = document.getElementById('wStart').value;
+  monDate = val ? new Date(val+'T00:00:00') : getMonday();
+
+  const fri = addD(monDate, 4);
+  document.getElementById('wRange').textContent =
+    `${monDate.getFullYear()}年 ${fS(monDate)}（月）〜 ${fS(fri)}（金）`;
+
+  const days = ['月','火','水','木','金'];
+  days.forEach((d,i)=>{
+    const dt = addD(monDate, i);
+    const th = document.getElementById(`th${i}`);
+    if(th) th.textContent = `${d} ${dt.getMonth()+1}/${dt.getDate()}`;
+  });
+
+  const badge = document.getElementById('thuBadge');
+  badge.textContent = thuOdd ? '奇数週（科学習得）' : '偶数週（自習）';
+  badge.className = 'thu-badge ' + (thuOdd ? 'thu-odd' : 'thu-even');
+
+  // グリッド構築
+  const grid = {};
+  SLOTS.forEach(s=>{ grid[s.min]=[{},{},{},{},{}]; });
+  const filled = {};
+
+  sch.forEach(entry=>{
+    const st=tm(entry.s), en=tm(entry.e);
+    const cov = SLOTS.filter(s=>s.min>=st&&s.min<en);
+    if(!cov.length) return;
+    entry.d.forEach(day=>{
+      const k0 = `${cov[0].min}_${day}`;
+      if(filled[k0]) return;
+      let lbl = entry.l;
+      if(typeof lbl==='function'){
+        const ref = addD(monDate, day+(entry.off??0));
+        lbl = lbl(ref);
+      }
+      grid[cov[0].min][day] = {lbl, type:entry.t, rs:cov.length};
+      cov.slice(1).forEach(s=>{ filled[`${s.min}_${day}`]=true; });
+    });
+  });
+
+  const tbody = document.getElementById('tbody');
+  tbody.innerHTML = '';
+  SLOTS.forEach(slot=>{
+    const tr = document.createElement('tr');
+    const isH = slot.min%60===0;
+    const ttd = document.createElement('td');
+    ttd.className = 'tmc'+(isH?' hm':'');
+    ttd.textContent = isH ? slot.lbl : slot.lbl.slice(3);
+    tr.appendChild(ttd);
+
+    for(let day=0;day<5;day++){
+      const k = `${slot.min}_${day}`;
+      if(filled[k]) continue;
+      const cell = grid[slot.min][day];
+      const td = document.createElement('td');
+      td.dataset.day = day;
+      const div = document.createElement('div');
+      if(cell&&cell.lbl){
+        if(cell.rs>1) td.rowSpan = cell.rs;
+        div.className = `slot ${cell.type}`;
+        div.textContent = cell.lbl;
+      } else {
+        div.className = 'slot brk';
+      }
+      td.appendChild(div);
+      tr.appendChild(td);
+    }
+    tbody.appendChild(tr);
+  });
+
+  highlightToday();
+  updateTimeLine();
+}
+
+// ===== ナビ =====
+function getMonday() {
+  const d=new Date(), day=d.getDay();
+  d.setDate(d.getDate()+(day===0?-6:1-day));
+  d.setHours(0,0,0,0); return d;
+}
+function toDV2(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function shift(n) {
+  const d = new Date(document.getElementById('wStart').value+'T00:00:00');
+  d.setDate(d.getDate()+n*7);
+  document.getElementById('wStart').value = toDV2(d);
+  render();
+}
+function goNow() {
+  document.getElementById('wStart').value = toDV2(getMonday());
+  render();
+}
+
+// ===== 初期化 =====
+window.addEventListener('DOMContentLoaded', ()=>{
+  document.getElementById('wStart').value = toDV2(getMonday());
+  document.getElementById('thuTog').addEventListener('change', ()=>{
+    document.getElementById('thuLbl').textContent =
+      document.getElementById('thuTog').checked ? '奇数週' : '偶数週';
+    render();
+  });
+  document.getElementById('wStart').addEventListener('change', render);
+  render();
+  setInterval(updateTimeLine, 60000);
+});
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js');
+}
+</script>
+</body>
+</html>
